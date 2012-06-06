@@ -44,12 +44,11 @@ class DropboxPoller < Poller
     delta["entries"].each do |entry|
       path, data = entry
       action = parse_action(entry)
-      previous_entry = @folder_state[path]
+      prev_entry = @folder_state[path]
 
-      update_folder_state(entry)
-      msg = DropboxMessage.new(entry, action, previous_entry)
-      msg.share_link = share_link(path)
-      @messages.merge!({path => msg})
+      # update folder state and init message
+      update_folder_state(entry, action)
+      @messages.merge!({path => {:entry => entry, :prev_entry => prev_entry, :action => action}})
     end
 
     @root_paths = []
@@ -59,7 +58,12 @@ class DropboxPoller < Poller
       end
     end
 
-    @root_paths.each { |root_path| push_to_flows(@messages[root_path]) }
+    @root_paths.each do |root_path|
+      entry_hash = @messages[root_path]
+      msg = DropboxMessage.new(entry_hash[:entry], entry_hash[:action], entry_hash[:prev_entry])
+      msg.share_link = share_link(root_path) unless entry_hash[:action] == :delete
+      push_to_flows(msg)
+    end
 
     true
   end
@@ -90,9 +94,8 @@ class DropboxPoller < Poller
     end
   end
 
-  def update_folder_state(entry)
+  def update_folder_state(entry, action)
     path, data = entry
-    action = parse_action(entry)
     if action == :delete
       @folder_state.delete(path)
     else
