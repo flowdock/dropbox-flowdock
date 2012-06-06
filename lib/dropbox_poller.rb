@@ -3,6 +3,8 @@ require 'multi_json'
 
 class DropboxPoller < Poller
 
+  attr_accessor :session, :client, :folder_state
+
   APP_KEY = 'ai3selxkgpj7hvm'
   APP_SECRET = 'lghetp1d3m3bquq'
 
@@ -13,13 +15,11 @@ class DropboxPoller < Poller
     @session = DropboxSession.new(APP_KEY, APP_SECRET)
     @session.set_access_token(USER_TOKEN, USER_SECRET)
 
-    @client = FakeDropboxClient.new #DropboxClient.new(@session, :dropbox)
-    puts "linked account:", @client.account_info().inspect
+    @client = DropboxClient.new(@session, :dropbox)
   end
 
-  def run
+  def run!
     init_session if @session.nil?
-    puts "run"
 
     delta = @client.delta(@cursor)
     @cursor = delta["cursor"]
@@ -33,7 +33,6 @@ class DropboxPoller < Poller
 
     # keep reading if delta comes in as multiple chunks
     while(delta["has_more"])
-      puts "has_more"
       delta = @client.delta(@cursor)
       @cursor = delta["cursor"]
 
@@ -49,13 +48,14 @@ class DropboxPoller < Poller
     @messages = {}
     delta["entries"].each do |entry|
       path, data = entry
+      action = parse_action(entry)
       previous_entry = @folder_state[path]
+
       update_folder_state(entry)
-      msg = DropboxMessage.new(entry, parse_action(entry), previous_entry)
+      msg = DropboxMessage.new(entry, action, previous_entry)
+      msg.share_link = share_link(path)
       @messages.merge!({path => msg})
     end
-
-    puts @messages.inspect
 
     @root_paths = []
     notifications = @messages.map do |path, msg|
@@ -64,30 +64,16 @@ class DropboxPoller < Poller
       end
     end
 
-    puts @root_paths.inspect
-
     @root_paths.each { |root_path| push_to_flows(@messages[root_path]) }
 
-    puts "Finished run, sleeping 60 secs"
     true
   end
 
   def polling_interval
-    5
+    60
   end
 
   private
-
-  def look_up(folders, path)
-    path_parts = path.split(File::PATH_SEPARATOR)
-    path_parts.delete(path_parts.last)
-    parent = File.join(path_parts)
-    if folders[parent] != nil
-      look_up(folders, parent)
-    else
-      path
-    end
-  end
 
   def parse_action(entry)
     path, data = entry
@@ -97,15 +83,20 @@ class DropboxPoller < Poller
       if @folder_state[path] == nil
         return :add
       else
-        puts "data of #{path}: #{@folder_state[path].inspect}"
         return :update
       end
     end
   end
 
+  def share_link(path)
+    if !File.directory?(path)
+      # get share link for the file
+      @client.shares(path)["url"]
+    end
+  end
+
   def update_folder_state(entry)
     path, data = entry
-    is_dir = File.directory?(path)
     action = parse_action(entry)
     if action == :delete
       @folder_state.delete(path)
@@ -115,14 +106,6 @@ class DropboxPoller < Poller
         @folder_state.merge!({path => data})
       elsif action == :update
         @folder_state[path].merge!(data)
-      end
-
-      if !is_dir && !@folder_state[path]["link"]
-        # get new share link for the file
-        link_data = @client.shares(path)
-        puts "Link to #{path} expires #{link_data["expires"]}"
-        # store for later usage
-        @folder_state[path]["link"] = link_data["url"]
       end
     end
   end

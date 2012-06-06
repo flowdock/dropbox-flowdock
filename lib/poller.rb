@@ -1,6 +1,8 @@
 require 'flowdock'
 
 class Poller
+  attr_reader :flows
+
   def initialize
     @flows = []
     ENV["FLOW_TOKENS"].split(/,/).each do |api_token|
@@ -9,7 +11,7 @@ class Poller
     end
   end
 
-  def run
+  def run!
     raise NotImplementedError, "You must override this method in your subclass!"
   end
 
@@ -18,7 +20,7 @@ class Poller
   end
 
   def start!
-    while(run)
+    while(run!)
       sleep(polling_interval)
     end
   end

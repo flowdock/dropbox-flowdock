@@ -7,7 +7,6 @@ class DropboxMessage
   def initialize(entry, action, previous_entry)
     @path, @data = entry
     @action = action
-    @share_link = @data["link"] unless @data.nil?
 
     # in case of delete action @data is nil => must check the previous entry
     if (@data && @data["is_dir"]) || (previous_entry && previous_entry["is_dir"])
@@ -17,8 +16,8 @@ class DropboxMessage
     end
   end
 
-  def link
-    "https://www.dropbox.com/home#{File.dirname(@path)}"
+  def link(path)
+    "https://www.dropbox.com/home#{path}"
   end
 
   def as_team_inbox_message
@@ -32,10 +31,18 @@ class DropboxMessage
   private
 
   def folder_message
+    if @action == :add || @action == :update
+      folder_link = link(@path)
+      folder_name = "<a href=\"#{folder_link}\">#{File.basename(@path)}</a>"
+    elsif @action == :delete
+      folder_link = nil
+      folder_name = File.basename(@path)
+    end
+
     {
       :subject => "Folder #{File.basename(path)} #{ACTIONS[@action]}",
-      :content => "Folder <a href=\"https://www.dropbox.com/home#{path}\">#{File.basename(@path)}</a> was #{ACTIONS[@action]}.",
-      :link => link
+      :content => "Folder #{folder_name} was #{ACTIONS[@action]}.",
+      :link => folder_link
     }
   end
 
@@ -57,8 +64,8 @@ class DropboxMessage
 
     {
       :subject => "File #{File.basename(@path)} #{ACTIONS[@action]}",
-      :content => "File #{file_link} was #{full_action} Dropbox folder <a href=\"https://www.dropbox.com/home#{File.dirname(@path)}\">#{folder}</a>.",
-      :link => link
+      :content => "File #{file_link} was #{full_action} <a href=\"https://www.dropbox.com/home#{File.dirname(@path)}\">#{folder}</a>.",
+      :link => link(File.dirname(@path))
     }
   end
 end
