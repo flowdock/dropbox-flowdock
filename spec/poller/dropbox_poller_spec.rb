@@ -5,6 +5,12 @@ ENV["SOURCE"] = "dropbox"
 ENV["FROM_ADDRESS"] = "foo@example.com"
 ENV["FROM_NAME"] = "Dropbox"
 
+ENV["APP_KEY"] = 'invalid'
+ENV["APP_SECRET"] = 'invalid'
+
+ENV["USER_TOKEN"] = 'invalid'
+ENV["USER_SECRET"] = 'invalid'
+
 describe DropboxPoller do
   describe "when running for the first time" do
     it "initializes Dropbox session and client" do

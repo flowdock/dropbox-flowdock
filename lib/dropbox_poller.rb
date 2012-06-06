@@ -5,15 +5,10 @@ class DropboxPoller < Poller
 
   attr_accessor :session, :client, :folder_state
 
-  APP_KEY = 'ai3selxkgpj7hvm'
-  APP_SECRET = 'lghetp1d3m3bquq'
-
-  USER_TOKEN = 'ebodiaxjk8scvar'
-  USER_SECRET = '1ypaoel3zqzxdcr'
-
   def init_session
-    @session = DropboxSession.new(APP_KEY, APP_SECRET)
-    @session.set_access_token(USER_TOKEN, USER_SECRET)
+    ["APP_KEY", "APP_SECRET", "USER_TOKEN", "USER_SECRET"].each { |var| raise "Environment variable #{var} is not defined!" unless ENV[var] }
+    @session = DropboxSession.new(ENV["APP_KEY"], ENV["APP_SECRET"])
+    @session.set_access_token(ENV["USER_TOKEN"], ENV["USER_SECRET"])
 
     @client = DropboxClient.new(@session, :dropbox)
   end
