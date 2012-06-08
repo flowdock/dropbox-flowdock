@@ -1,1 +1,1 @@
-app: bundle exec ruby runner.rb dropbox_poller
+app: bundle exec ruby runner.rb DropboxPoller

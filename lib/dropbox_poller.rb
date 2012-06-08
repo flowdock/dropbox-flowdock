@@ -36,9 +36,12 @@ class DropboxPoller < Poller
 
     if @reading_reset
       # after reading initial state, wait for real deltas
+      puts "Received initial delta with #{@folder_state.size} entries"
       @reading_reset = false
       return true
     end
+
+    puts "Received delta with #{delta["entries"].size} entries"
 
     @messages = {}
     delta["entries"].each do |entry|
@@ -46,11 +49,14 @@ class DropboxPoller < Poller
       action = parse_action(entry)
       prev_entry = @folder_state[path]
 
-      # update folder state and init message
+      # update folder state and store entry
       update_folder_state(entry, action)
       @messages.merge!({path => {:entry => entry, :prev_entry => prev_entry, :action => action}})
     end
 
+    # figure out the shortest paths in the received delta entries
+    # eg. case "/test/foo/bar.png": deleted, "/test": deleted
+    # => in order to reduce noise, we should only notify about the deletion of the root folder
     @root_paths = []
     notifications = @messages.map do |path, msg|
       if @root_paths.empty? || @root_paths.reject! { |root_path| root_path.match(/^#{path}/) }
@@ -58,6 +64,7 @@ class DropboxPoller < Poller
       end
     end
 
+    # send notification of each root path entry
     @root_paths.each do |root_path|
       entry_hash = @messages[root_path]
       msg = DropboxMessage.new(entry_hash[:entry], entry_hash[:action], entry_hash[:prev_entry])
@@ -109,6 +116,7 @@ class DropboxPoller < Poller
   end
 
   def push_to_flows(dropbox_msg)
+    puts "Pushing notification to #{@flows.size} flows"
     @flows.each { |flow| flow.push_to_team_inbox({:tags => ["dropbox"]}.merge(dropbox_msg.as_team_inbox_message)) }
   end
 
