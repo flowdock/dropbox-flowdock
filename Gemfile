@@ -4,6 +4,7 @@ gem "dropbox-sdk"
 gem "flowdock"
 gem "multi_json"
 gem "foreman"
+gem "rake"
 
 group :test do
   gem "rspec"
