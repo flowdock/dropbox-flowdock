@@ -59,7 +59,9 @@ class DropboxPoller < Poller
     # => in order to reduce noise, we should only notify about the deletion of the root folder
     @root_paths = []
     notifications = @messages.map do |path, msg|
-      if @root_paths.empty? || @root_paths.reject! { |root_path| root_path.match(/^#{path}/) }
+      parent = @root_paths.reject! { |root_path| root_path.match(/^#{path}/) } # check if path is parent of some root_paths
+      subpaths = @root_paths.select { |root_path| path.match(/^#{root_path}/) } # check if root_paths already contains some parent of given path
+      if @root_paths.empty? || !parent.nil? || subpaths.empty?
         @root_paths << path
       end
     end
@@ -117,7 +119,14 @@ class DropboxPoller < Poller
 
   def push_to_flows(dropbox_msg)
     puts "Pushing notification to #{@flows.size} flows"
-    @flows.each { |flow| flow.push_to_team_inbox({:tags => ["dropbox"]}.merge(dropbox_msg.as_team_inbox_message)) }
+    @flows.each do |flow|
+      begin
+        flow.push_to_team_inbox({:tags => ["dropbox"]}.merge(dropbox_msg.as_team_inbox_message))
+      rescue => e
+        puts "Unable to nofity flow: #{flow.inspect}"
+        puts e.to_s
+      end
+    end
   end
 
   def parse_folder_state(entries)

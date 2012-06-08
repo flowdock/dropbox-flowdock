@@ -10,6 +10,8 @@ Requirements:
 Steps:
 
   * Checkout the code from Github and deploy to the server
+  * run `bundle install`
+  * symlink `sample.env` as `.env`: `ln -s sample.env .env`
   * Go to [My apps](https://www.dropbox.com/developers/apps) in Dropbox while logged in with the account
   * Create a new app with full access to the Dropbox account (name and description can be anything)
   * After creating the app you should see App key and App secret tokens. Copy those into the `sample.env` file in the checked out repository (into APP_TOKEN and APP_SECRET variables).

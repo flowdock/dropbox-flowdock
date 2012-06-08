@@ -71,6 +71,16 @@ describe DropboxPoller do
       @poller.run!
     end
 
+    it "parses adding a file and a folder with one file (delta8)" do
+      should_send_notification({:tags => ["dropbox"], :subject => "File another_bug.png added",
+        :content=>"File <a href=\"https://www.dropbox.com/s/q6p2bn9td2wjwfb\">another_bug.png</a> was added to <a href=\"https://www.dropbox.com/home/\">Home</a>.",
+        :link=>"https://www.dropbox.com/home/"})
+      should_send_notification({:tags => ["dropbox"], :subject => "Folder test2 added",
+        :content=>"Folder <a href=\"https://www.dropbox.com/home/test2\">test2</a> was added.",
+        :link=>"https://www.dropbox.com/home/test2"})
+      @poller.run!
+    end
+
   end
 
   def should_send_notification(params)
