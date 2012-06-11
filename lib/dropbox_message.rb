@@ -21,10 +21,10 @@ class DropboxMessage
   end
 
   def as_team_inbox_message
-    if @type == :folder
-      folder_message
-    elsif @type == :file
-      file_message
+    case @type
+      when :folder then folder_message
+      when :file then file_message
+      else raise "Unknown Dropbox message type: path: #{@path} | data: #{@data.inspect}"
     end
   end
 

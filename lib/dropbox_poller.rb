@@ -43,6 +43,7 @@ class DropboxPoller < Poller
 
     puts "Received delta with #{delta["entries"].size} entries"
 
+    # parse entries in delta
     @messages = {}
     delta["entries"].each do |entry|
       path, data = entry
@@ -59,9 +60,9 @@ class DropboxPoller < Poller
     # => in order to reduce noise, we should only notify about the deletion of the root folder
     @root_paths = []
     notifications = @messages.map do |path, msg|
-      parent = @root_paths.reject! { |root_path| root_path.match(/^#{path}/) } # check if path is parent of some root_paths
+      is_parent = @root_paths.reject! { |root_path| root_path.match(/^#{path}/) } # check if path is parent of some root_paths
       subpaths = @root_paths.select { |root_path| path.match(/^#{root_path}/) } # check if root_paths already contains some parent of given path
-      if @root_paths.empty? || !parent.nil? || subpaths.empty?
+      if @root_paths.empty? || !is_parent.nil? || subpaths.empty?
         @root_paths << path
       end
     end
@@ -86,18 +87,16 @@ class DropboxPoller < Poller
   def parse_action(entry)
     path, data = entry
     if data == nil
-      return :delete
+      :delete
+    elsif @folder_state[path] == nil
+      :add
     else
-      if @folder_state[path] == nil
-        return :add
-      else
-        return :update
-      end
+      :update
     end
   end
 
   def share_link(path)
-    if !File.directory?(path)
+    if @folder_state[path] && !@folder_state[path]["is_dir"]
       # get share link for the file
       @client.shares(path)["url"]
     end
@@ -105,15 +104,10 @@ class DropboxPoller < Poller
 
   def update_folder_state(entry, action)
     path, data = entry
-    if action == :delete
-      @folder_state.delete(path)
-    else
-      # keep up the state
-      if action == :add
-        @folder_state.merge!({path => data})
-      elsif action == :update
-        @folder_state[path].merge!(data)
-      end
+    case action
+      when :delete then @folder_state.delete(path)
+      when :add then @folder_state[path] = data
+      when :update then @folder_state[path].merge!(data)
     end
   end
 
