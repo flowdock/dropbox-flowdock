@@ -37,9 +37,9 @@ describe DropboxPoller do
     end
 
     it "parses adding a folder with files and aggregates it into one notification (delta3)" do
-      should_send_notification({:tags => ["dropbox"], :subject => "Folder testing added",
-        :content=>"Folder <a href=\"https://www.dropbox.com/home/testing\">testing</a> was added.",
-        :link=>"https://www.dropbox.com/home/testing"})
+      should_send_notification({:tags => ["dropbox"], :subject => "Folder testing2 added",
+        :content=>"Folder <a href=\"https://www.dropbox.com/home/testing2\">testing2</a> was added.",
+        :link=>"https://www.dropbox.com/home/testing2"})
       @poller.run!
     end
 
@@ -58,8 +58,8 @@ describe DropboxPoller do
     end
 
     it "parses deleting folder with files and aggregates it into one notification (delta6)" do
-      should_send_notification({:tags => ["dropbox"], :subject => "Folder testing deleted",
-        :content=>"Folder testing was deleted.",
+      should_send_notification({:tags => ["dropbox"], :subject => "Folder testing2 deleted",
+        :content=>"Folder testing2 was deleted.",
         :link=> nil})
       @poller.run!
     end
@@ -78,6 +78,16 @@ describe DropboxPoller do
       should_send_notification({:tags => ["dropbox"], :subject => "Folder test2 added",
         :content=>"Folder <a href=\"https://www.dropbox.com/home/test2\">test2</a> was added.",
         :link=>"https://www.dropbox.com/home/test2"})
+      @poller.run!
+    end
+
+    it "parses adding a file and a folder with one file in chunked deltas (delta9 & delta10)" do
+      should_send_notification({:tags => ["dropbox"], :subject => "File influx_bug.png added",
+        :content=>"File <a href=\"https://www.dropbox.com/s/q6p2bn9td2wjwfb\">influx_bug.png</a> was added to <a href=\"https://www.dropbox.com/home/\">Home</a>.",
+        :link=>"https://www.dropbox.com/home/"})
+      should_send_notification({:tags => ["dropbox"], :subject => "Folder testing2 added",
+        :content=>"Folder <a href=\"https://www.dropbox.com/home/testing2\">testing2</a> was added.",
+        :link=>"https://www.dropbox.com/home/testing2"})
       @poller.run!
     end
 

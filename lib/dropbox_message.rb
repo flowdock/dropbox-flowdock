@@ -4,12 +4,12 @@ class DropboxMessage
 
   ACTIONS = {:add => "added", :update => "updated", :delete => "deleted"}
 
-  def initialize(entry, action, previous_entry)
+  def initialize(entry, action, prev_data)
     @path, @data = entry
     @action = action
 
     # in case of delete action @data is nil => must check the previous entry
-    if (@data && @data["is_dir"]) || (previous_entry && previous_entry["is_dir"])
+    if (@data && @data["is_dir"]) || (prev_data && prev_data["is_dir"])
       @type = :folder
     else
       @type = :file

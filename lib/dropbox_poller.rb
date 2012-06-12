@@ -15,63 +15,35 @@ class DropboxPoller < Poller
 
   def run!
     init_session if @session.nil?
+    delta_entries = read_delta
+    return true unless delta_entries # no entries => initial state read
 
-    delta = @client.delta(@cursor)
-    @cursor = delta["cursor"]
-
-    # keep initial state for detecting updates to existing files
-    # (no indication provided by the delta API, just "added" or "deleted")
-    if delta["reset"]
-      @reading_reset = true
-      @folder_state = parse_folder_state(delta["entries"])
-    end
-
-    # keep reading if delta comes in as multiple chunks
-    while(delta["has_more"])
-      delta = @client.delta(@cursor)
-      @cursor = delta["cursor"]
-
-      @folder_state.merge!(parse_folder_state(delta["entries"]))
-    end
-
-    if @reading_reset
-      # after reading initial state, wait for real deltas
-      puts "Received initial delta with #{@folder_state.size} entries"
-      @reading_reset = false
-      return true
-    end
-
-    puts "Received delta with #{delta["entries"].size} entries"
-
-    # parse entries in delta
-    @messages = {}
-    delta["entries"].each do |entry|
-      path, data = entry
-      action = parse_action(entry)
-      prev_entry = @folder_state[path]
-
-      # update folder state and store entry
-      update_folder_state(entry, action)
-      @messages.merge!({path => {:entry => entry, :prev_entry => prev_entry, :action => action}})
-    end
+    # parse entries in delta & update folder state
+    parsed_entries = parse_delta_entries(delta_entries)
+    update_folder_state(parsed_entries)
 
     # figure out the shortest paths in the received delta entries
     # eg. case "/test/foo/bar.png": deleted, "/test": deleted
-    # => in order to reduce noise, we should only notify about the deletion of the root folder
-    @root_paths = []
-    notifications = @messages.map do |path, msg|
-      is_parent = @root_paths.reject! { |root_path| root_path.match(/^#{path}/) } # check if path is parent of some root_paths
-      subpaths = @root_paths.select { |root_path| path.match(/^#{root_path}/) } # check if root_paths already contains some parent of given path
-      if @root_paths.empty? || !is_parent.nil? || subpaths.empty?
-        @root_paths << path
+    # => in order to reduce noise, we should only notify about the deletion of the parent folder
+    shortest_paths = []
+    notifications = parsed_entries.map do |path, entry_hash|
+      is_parent = shortest_paths.reject! { |shortest_path| shortest_path.match(/^#{path}/) } # if path is parent of some item in shortest_paths => remove item
+      subpaths = shortest_paths.select { |shortest_path| path.match(/^#{shortest_path}/) } # check if shortest_paths already contains some parent of given path
+
+      # add this path to shortest paths if:
+      # 1) there's no shortest paths yet
+      # 2) path replaces one or more subfolders (removed already from shortest_paths)
+      # 3) path isn't subfolder of any existing shortest_path (new path)
+      if shortest_paths.empty? || !is_parent.nil? || subpaths.empty?
+        shortest_paths << path
       end
     end
 
     # send notification of each root path entry
-    @root_paths.each do |root_path|
-      entry_hash = @messages[root_path]
-      msg = DropboxMessage.new(entry_hash[:entry], entry_hash[:action], entry_hash[:prev_entry])
-      msg.share_link = share_link(root_path) unless entry_hash[:action] == :delete
+    shortest_paths.each do |shortest_path|
+      entry_hash = parsed_entries[shortest_path]
+      msg = DropboxMessage.new(entry_hash[:entry], entry_hash[:action], entry_hash[:prev_data])
+      msg.share_link = share_link(shortest_path) unless entry_hash[:action] == :delete
       push_to_flows(msg)
     end
 
@@ -83,6 +55,39 @@ class DropboxPoller < Poller
   end
 
   private
+
+  def read_delta
+    delta = @client.delta(@cursor)
+    # cursor is used to define our last received delta point
+    @cursor = delta["cursor"]
+
+    # if reset is true => delta contains the initial state of the folder
+    # let's keep the initial state for detecting updates to existing files
+    @folder_state ||= {}
+    reading_reset = false
+    if delta["reset"]
+      reading_reset = true
+      @folder_state = parse_delta_entries(delta["entries"])
+    end
+
+    # keep reading if delta comes in as multiple chunks, the next delta can be fetched immediately according to API docs
+    delta_entries = delta["entries"]
+    while(delta["has_more"])
+      delta = @client.delta(@cursor)
+      @cursor = delta["cursor"]
+
+      # push entries straight to folder state if reading initial state, otherwise collect them into new array
+      if reading_reset
+        @folder_state.merge!(parse_delta_entries(delta["entries"]))
+      else
+        delta_entries += delta["entries"]
+      end
+    end
+
+    # after reading initial state, wait for real deltas
+    return nil if reading_reset
+    delta_entries
+  end
 
   def parse_action(entry)
     path, data = entry
@@ -102,12 +107,14 @@ class DropboxPoller < Poller
     end
   end
 
-  def update_folder_state(entry, action)
-    path, data = entry
-    case action
-      when :delete then @folder_state.delete(path)
-      when :add then @folder_state[path] = data
-      when :update then @folder_state[path].merge!(data)
+  def update_folder_state(entries)
+    entries.each do |path, entry_hash|
+      path, data = entry_hash[:entry]
+      case entry_hash[:action]
+        when :delete then @folder_state.delete(path)
+        when :add then @folder_state[path] = data
+        when :update then @folder_state[path].merge!(data)
+      end
     end
   end
 
@@ -123,9 +130,11 @@ class DropboxPoller < Poller
     end
   end
 
-  def parse_folder_state(entries)
+  def parse_delta_entries(entries)
     entries.reduce({}) { |entries, entry|
-      entries.merge({ entry[0] => entry[1] })
+      path, data = entry
+      action = parse_action(entry)
+      entries.merge({ path => {:entry => entry, :prev_data => @folder_state[path], :action => action} })
     }
   end
 end

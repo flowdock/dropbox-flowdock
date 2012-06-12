@@ -10,7 +10,8 @@ class FakeDropboxClient
     @i ||= 0
     @i += 1
 
-    delta_json_path = File.join("spec", "fixtures", "deltas", "delta#{@i}.json")
+    num = if @i < 10 then "0#{@i}" else @i.to_s end
+    delta_json_path = File.join("spec", "fixtures", "deltas", "delta#{num}.json")
     if File.exists?(delta_json_path)
       return MultiJson.decode(File.read(File.new(delta_json_path)))
     else
