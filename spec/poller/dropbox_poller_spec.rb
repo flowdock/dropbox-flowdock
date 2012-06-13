@@ -94,11 +94,11 @@ describe DropboxPoller do
     it "parses adding two files and deleting one file inside the same folder into one aggregated notification (delta11)" do
       should_send_notification({:tags => ["dropbox"], :subject => "Activity in testing2: 2 files added, 1 file deleted",
         :content =>
-          "Added:\n" +
-          " <a href=\"https://www.dropbox.com/s/q6p2bn9td2wjwfb\">influx_bug.png</a>\n" +
-          " <a href=\"https://www.dropbox.com/s/q6p2bn9td2wjwfb\">another_influx_bug.png</a>\n\n" +
-          "Deleted:\n" +
-          " tide.png",
+          "<strong>Added:</strong><ul>" +
+          "<li><a href=\"https://www.dropbox.com/s/q6p2bn9td2wjwfb\">influx_bug.png</a></li>" +
+          "<li><a href=\"https://www.dropbox.com/s/q6p2bn9td2wjwfb\">another_influx_bug.png</a></li></ul>" +
+          "<strong>Deleted:</strong><ul>" +
+          "<li>tide.png</li></ul>",
         :link => "https://www.dropbox.com/home/testing2"})
       @poller.run!
     end

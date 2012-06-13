@@ -35,14 +35,14 @@ class DropboxMessage
       stats[msg.action] += 1
 
       if msg.action == :delete
-        files_list[msg.action] << " #{File.basename(msg.path)}"
+        files_list[msg.action] << "#{File.basename(msg.path)}"
       else
-        files_list[msg.action] << " <a href=\"#{msg.share_link}\">#{File.basename(msg.path)}</a>"
+        files_list[msg.action] << "<a href=\"#{msg.share_link}\">#{File.basename(msg.path)}</a>"
       end
     end
 
     activity = stats.map { |k,v| "#{v} file#{'s' if v > 1} #{ACTIONS[k]}" if v > 0 }.compact.join(", ")
-    content = files_list.map { |k,v| "#{ACTIONS[k].capitalize}:\n" + v.join("\n") if v.size > 0 }.compact.join("\n\n")
+    content = files_list.map { |k,v| "<strong>#{ACTIONS[k].capitalize}:</strong><ul><li>" + v.join("</li><li>") + "</li></ul>" if v.size > 0 }.compact.join("")
 
     {
       :subject => "Activity in #{File.basename(path)}: #{activity}",
