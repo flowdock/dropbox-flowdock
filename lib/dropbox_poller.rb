@@ -39,13 +39,30 @@ class DropboxPoller < Poller
       end
     end
 
-    # send notification of each root path entry
+    # send notification of each shortest path entry
+    @folders = []
+    @files = {}
     shortest_paths.each do |shortest_path|
       entry_hash = parsed_entries[shortest_path]
       msg = DropboxMessage.new(entry_hash[:entry], entry_hash[:action], entry_hash[:prev_data])
       msg.share_link = share_link(shortest_path) unless entry_hash[:action] == :delete
-      push_to_flows(msg)
+      if msg.type == :folder
+        @folders << msg
+      else
+        dirname = File.dirname(msg.path)
+        @files[dirname] ||= []
+        @files[dirname] << msg
+      end
     end
+
+    @folders.each { |msg| push_to_flows(msg.as_team_inbox_message) }
+    @files.each { |path, msgs|
+      if msgs.size > 1
+        push_to_flows(DropboxMessage.aggregate(path, msgs))
+      else
+        push_to_flows(msgs.first.as_team_inbox_message)
+      end
+    }
 
     true
   end
@@ -118,11 +135,11 @@ class DropboxPoller < Poller
     end
   end
 
-  def push_to_flows(dropbox_msg)
+  def push_to_flows(notification_options)
     puts "Pushing notification to #{@flows.size} flows"
     @flows.each do |flow|
       begin
-        flow.push_to_team_inbox({:tags => ["dropbox"]}.merge(dropbox_msg.as_team_inbox_message))
+        flow.push_to_team_inbox({tags: ["dropbox"]}.merge(notification_options))
       rescue => e
         puts "Unable to nofity flow: #{flow.inspect}"
         puts e.to_s
@@ -130,11 +147,11 @@ class DropboxPoller < Poller
     end
   end
 
-  def parse_delta_entries(entries)
-    entries.reduce({}) { |entries, entry|
+  def parse_delta_entries(delta_entries)
+    delta_entries.reduce({}) { |entries, entry|
       path, data = entry
       action = parse_action(entry)
-      entries.merge({ path => {:entry => entry, :prev_data => @folder_state[path], :action => action} })
+      entries.merge({ path => {entry: entry, prev_data: @folder_state[path], action: action} })
     }
   end
 end
