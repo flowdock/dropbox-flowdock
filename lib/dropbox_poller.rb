@@ -139,7 +139,7 @@ class DropboxPoller < Poller
     puts "Pushing notification to #{@flows.size} flows"
     @flows.each do |flow|
       begin
-        flow.push_to_team_inbox({tags: ["dropbox"]}.merge(notification_options))
+        flow.push_to_team_inbox({:tags => ["dropbox"]}.merge(notification_options))
       rescue => e
         puts "Unable to nofity flow: #{flow.inspect}"
         puts e.to_s
@@ -151,7 +151,7 @@ class DropboxPoller < Poller
     delta_entries.reduce({}) { |entries, entry|
       path, data = entry
       action = parse_action(entry)
-      entries.merge({ path => {entry: entry, prev_data: @folder_state[path], action: action} })
+      entries.merge({ path => {:entry => entry, :prev_data => @folder_state[path], :action => action} })
     }
   end
 end

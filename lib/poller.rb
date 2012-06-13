@@ -7,8 +7,8 @@ class Poller
     raise "Environment variable FLOW_TOKENS is not defined!" unless ENV["FLOW_TOKENS"]
     @flows = []
     ENV["FLOW_TOKENS"].split(/,/).each do |api_token|
-      @flows << Flowdock::Flow.new(api_token: api_token,
-        source: ENV["SOURCE"], from: { name: ENV["FROM_NAME"], address: ENV["FROM_ADDRESS"] })
+      @flows << Flowdock::Flow.new(:api_token => api_token,
+        :source => ENV["SOURCE"], :from => { :name => ENV["FROM_NAME"], :address => ENV["FROM_ADDRESS"] })
     end
   end
 

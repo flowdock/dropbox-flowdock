@@ -2,7 +2,7 @@ class DropboxMessage
 
   attr_accessor :action, :type, :path, :data, :share_link
 
-  ACTIONS = { add: "added", update: "updated", delete: "deleted" }
+  ACTIONS = { :add => "added", :update => "updated", :delete => "deleted" }
 
   def initialize(entry, action, prev_data)
     @path, @data = entry
@@ -29,8 +29,8 @@ class DropboxMessage
   end
 
   def self.aggregate(path, msgs)
-    stats = { add: 0, update: 0, delete: 0 }
-    files_list = { add: [], update: [], delete: []}
+    stats = { :add => 0, :update => 0, :delete => 0 }
+    files_list = { :add => [], :update => [], :delete => []}
     msgs.each do |msg|
       stats[msg.action] += 1
 
@@ -45,9 +45,9 @@ class DropboxMessage
     content = files_list.map { |k,v| "#{ACTIONS[k].capitalize}:\n" + v.join("\n") if v.size > 0 }.compact.join("\n\n")
 
     {
-      subject: "Activity in #{File.basename(path)}: #{activity}",
-      content: content,
-      link: path_link(path)
+      :subject => "Activity in #{File.basename(path)}: #{activity}",
+      :content => content,
+      :link => path_link(path)
     }
   end
 
@@ -63,9 +63,9 @@ class DropboxMessage
     end
 
     {
-      subject: "Folder #{File.basename(path)} #{ACTIONS[@action]}",
-      content: "Folder #{folder_name} was #{ACTIONS[@action]}.",
-      link: folder_link
+      :subject => "Folder #{File.basename(path)} #{ACTIONS[@action]}",
+      :content => "Folder #{folder_name} was #{ACTIONS[@action]}.",
+      :link => folder_link
     }
   end
 
@@ -86,9 +86,9 @@ class DropboxMessage
     end
 
     {
-      subject: "File #{File.basename(@path)} #{ACTIONS[@action]}",
-      content: "File #{file_link} was #{full_action} <a href=\"https://www.dropbox.com/home#{File.dirname(@path)}\">#{folder}</a>.",
-      link: self.class.path_link(File.dirname(@path))
+      :subject => "File #{File.basename(@path)} #{ACTIONS[@action]}",
+      :content => "File #{file_link} was #{full_action} <a href=\"https://www.dropbox.com/home#{File.dirname(@path)}\">#{folder}</a>.",
+      :link => self.class.path_link(File.dirname(@path))
     }
   end
 end
