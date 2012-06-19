@@ -103,6 +103,22 @@ describe DropboxPoller do
       @poller.run!
     end
 
+    it "parses adding activity in folder (1 add, 1 update, 1 delete) + adding one other file into an aggregated notification for the folder and a separate file notification (delta12)" do
+      should_send_notification({:tags => ["dropbox"], :subject => "Activity in testing2: 1 file added, 1 file updated, 1 file deleted",
+        :content =>
+          "<strong>Added:</strong><ul>" +
+          "<li><a href=\"https://www.dropbox.com/s/q6p2bn9td2wjwfb\">yet_another_influx_bug.png</a></li></ul>" +
+          "<strong>Updated:</strong><ul>" +
+          "<li><a href=\"https://www.dropbox.com/s/q6p2bn9td2wjwfb\">another_influx_bug.png</a></li></ul>" +
+          "<strong>Deleted:</strong><ul>" +
+          "<li>influx_bug.png</li></ul>",
+        :link => "https://www.dropbox.com/home/testing2"})
+      should_send_notification({:tags => ["dropbox"], :subject => "File other_bug.png added",
+        :content => "File <a href=\"https://www.dropbox.com/s/q6p2bn9td2wjwfb\">other_bug.png</a> was added to <a href=\"https://www.dropbox.com/home/\">Home</a>.",
+        :link => "https://www.dropbox.com/home/"})
+      @poller.run!
+    end
+
   end
 
   def should_send_notification(params)

@@ -7,13 +7,7 @@ class DropboxMessage
   def initialize(entry, action, prev_data)
     @path, @data = entry
     @action = action
-
-    # in case of delete action @data is nil => must check the previous entry
-    if (@data && @data["is_dir"]) || (prev_data && prev_data["is_dir"])
-      @type = :folder
-    else
-      @type = :file
-    end
+    @type = self.class.type(@data, prev_data)
   end
 
   def as_team_inbox_message
@@ -21,6 +15,15 @@ class DropboxMessage
       when :folder then folder_message
       when :file then file_message
       else raise "Unknown Dropbox message type: path: #{@path} | data: #{@data.inspect}"
+    end
+  end
+
+  def self.type(data, prev_data)
+    # in case of delete action @data is nil => must check the previous entry
+    if (data && data["is_dir"]) || (prev_data && prev_data["is_dir"])
+      :folder
+    else
+      :file
     end
   end
 
