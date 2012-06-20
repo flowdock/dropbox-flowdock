@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-ENV["FLOW_TOKENS"] = "deadbeefdeadbeef,3ee7818aab66ee16f5d30cfd96e0100c"
+ENV["FLOW_TOKENS"] = "deadbeefdeadbeef, 3ee7818aab66ee16f5d30cfd96e0100c "
 ENV["SOURCE"] = "dropbox"
 ENV["FROM_ADDRESS"] = "foo@example.com"
 ENV["FROM_NAME"] = "Dropbox"
