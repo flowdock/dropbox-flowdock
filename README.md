@@ -34,7 +34,7 @@ heroku plugins:install git://github.com/ddollar/heroku-config.git
 
 Checkout flowdock-dropbox from Github and setup Heroku app:
 ```
-git clone https://github.com/flowdock/flowdock-web.git
+git clone https://github.com/flowdock/dropbox-flowdock.git
 heroku create
 ```
 
