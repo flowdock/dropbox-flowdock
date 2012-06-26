@@ -68,7 +68,7 @@ class DropboxPoller < Poller
   end
 
   def polling_interval
-    300 # Dropbox API encourages to have at least 5 minutes between polling
+    300 # Dropbox API documentation instructs to have at least 5 minutes between polling for new deltas
   end
 
   private
