@@ -4,7 +4,7 @@ class Poller
   attr_reader :flows
 
   def initialize
-    raise "Environment variable FLOW_TOKENS is not defined!" unless ENV["FLOW_TOKENS"]
+    ["FLOW_TOKENS", "SOURCE", "FROM_NAME", "FROM_ADDRESS"].each { |var| raise "Environment variable #{var} is not defined!" unless ENV[var] }
     @flows = []
     ENV["FLOW_TOKENS"].split(/,/).map(&:strip).each do |api_token|
       @flows << Flowdock::Flow.new(:api_token => api_token,
