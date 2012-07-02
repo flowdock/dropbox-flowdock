@@ -1,1 +1,1 @@
-app: bundle exec ruby runner.rb DropboxPoller
+app: bundle exec rake flowdock:pollers:dropbox:start
