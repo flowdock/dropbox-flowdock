@@ -7,6 +7,7 @@ describe Poller do
       ENV["SOURCE"] = "dropbox"
       ENV["FROM_ADDRESS"] = "foo@example.com"
       ENV["FROM_NAME"] = "Dropbox"
+      ENV["DROPBOX_PATH"] = "/"
 
       @poller = Poller.new
     end

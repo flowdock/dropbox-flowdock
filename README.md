@@ -19,6 +19,7 @@ Polling framework for integrating external services to Flowdock. Contains an exa
   * The rake task will give you a link for authorizing the app to access your Dropbox account
   * Now go back to the rake task and press Enter to continue. You should now see user tokens below, copy them to `sample.env` (into USER_TOKEN & USER_SECRET variables).
   * For each flow you want to have notified you must enter the flow's API token to FLOW_TOKENS variable in `sample.env`. Just head to [Account tokens](https://flowdock.com/account/tokens) in order to retrieve tokens for your flows. Copy the tokens to FLOW_TOKENS variable, separated by commas.
+  * If you want to receive notifications only from a specific path, you can change DROPBOX_PATH to point to the path (eg. `/photos/sample album`)
   * Symlink or just rename `sample.env` as `.env`
   * run `bundle exec foreman start` and you are done!
 

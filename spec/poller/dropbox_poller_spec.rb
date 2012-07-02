@@ -11,6 +11,8 @@ ENV["APP_SECRET"] = 'invalid'
 ENV["USER_TOKEN"] = 'invalid'
 ENV["USER_SECRET"] = 'invalid'
 
+ENV["DROPBOX_PATH"] = "/"
+
 describe DropboxPoller do
   describe "when running for the first time" do
     it "initializes Dropbox session and client" do
@@ -31,6 +33,7 @@ describe DropboxPoller do
     end
 
     it "parses initial state (delta1 & delta2)" do
+      should_not_send_notifications
       @poller.run!
       @poller.folder_state.should_not be_empty
       @poller.folder_state["/test/index.html"].should_not be_nil
@@ -118,10 +121,37 @@ describe DropboxPoller do
         :link => "https://www.dropbox.com/home/"})
       @poller.run!
     end
+  end
 
+  describe "with DROPBOX_PATH option" do
+    before :all do
+      @poller = DropboxPoller.new
+      @poller.stub(:polling_interval).and_return(5)
+      @poller.session = FakeDropboxSession.new
+      @poller.client = FakeDropboxClient.new
+      @poller.follow_path = "/photos"
+      @poller.should_not_receive(:init_session)
+    end
+
+    it "parses initial state (delta1 & delta2)" do
+      should_not_send_notifications
+      @poller.run!
+      @poller.folder_state.should_not be_empty
+      @poller.folder_state["/photos/sample album"].should_not be_nil
+      @poller.folder_state["/test/index.html"].should be_nil
+    end
+
+    it "ignores folder outside the defined path (delta3)" do
+      should_not_send_notifications
+      @poller.run!
+    end
   end
 
   def should_send_notification(params)
     @poller.flows.each { |flow| flow.should_receive(:push_to_team_inbox).with(params).once }
+  end
+
+  def should_not_send_notifications
+    @poller.flows.each { |flow| flow.should_not_receive(:push_to_team_inbox) }
   end
 end

@@ -3,13 +3,13 @@ require 'multi_json'
 
 class DropboxPoller < Poller
 
-  attr_accessor :session, :client, :folder_state
+  attr_accessor :session, :client, :folder_state, :follow_path
 
   def init_session
-    ["APP_KEY", "APP_SECRET", "USER_TOKEN", "USER_SECRET"].each { |var| raise "Environment variable #{var} is not defined!" unless ENV[var] }
+    ["APP_KEY", "APP_SECRET", "USER_TOKEN", "USER_SECRET", "DROPBOX_PATH"].each { |var| raise "Environment variable #{var} is not defined!" unless ENV[var] }
     @session = DropboxSession.new(ENV["APP_KEY"], ENV["APP_SECRET"])
     @session.set_access_token(ENV["USER_TOKEN"], ENV["USER_SECRET"])
-
+    @follow_path = ENV["DROPBOX_PATH"]
     @client = DropboxClient.new(@session, :dropbox)
   end
 
@@ -150,8 +150,13 @@ class DropboxPoller < Poller
   def parse_delta_entries(delta_entries)
     delta_entries.reduce({}) { |entries, entry|
       path, data = entry
-      action = parse_action(entry)
-      entries.merge({ path => {:entry => entry, :prev_data => @folder_state[path], :action => action} })
+      # ignore everything outside the desired Dropbox path
+      if path.match(/^#{@follow_path}/i)
+        action = parse_action(entry)
+        entries.merge({ path => {:entry => entry, :prev_data => @folder_state[path], :action => action} })
+      else
+        entries
+      end
     }
   end
 end
