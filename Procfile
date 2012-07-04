@@ -1,1 +1,1 @@
-app: bundle exec rake flowdock:pollers:dropbox:start
+app: bundle exec rake pollers:dropbox:start

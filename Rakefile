@@ -6,12 +6,10 @@ $stdout.sync = true
 require "dropbox-api/tasks"
 Dropbox::API::Tasks.install
 
-namespace :flowdock do
-  namespace :pollers do
-    namespace :dropbox do
-      task :start do |t, args|
-        DropboxPoller.new.start!
-      end
+namespace :pollers do
+  namespace :dropbox do
+    task :start do |t, args|
+      DropboxPoller.new.start!
     end
   end
 end
